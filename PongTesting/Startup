@@ -1,0 +1,56 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace PongAPI
+{
+    public class Startup
+    {
+        public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+            });
+            services.AddWebSockets(options => { });
+        }
+
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+            app.UseCors("AllowAll");
+            app.UseWebSockets();
+            app.Use(async (context, next) =>
+            {
+                if (context.WebSockets.IsWebSocketRequest)
+                {
+                    var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+                    await HandleWebSocketAsync(webSocket);
+                }
+                else
+                {
+                    await next();
+                }
+            });
+        }
+
+        private async Task HandleWebSocketAsync(System.Net.WebSockets.WebSocket webSocket)
+        {
+            var buffer = new byte[1024 * 4];
+            while (webSocket.State == System.Net.WebSockets.WebSocketState.Open)
+            {
+                var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), System.Threading.CancellationToken.None);
+                if (result.MessageType == System.Net.WebSockets.WebSocketMessageType.Text)
+                {
+                    var message = System.Text.Encoding.UTF8.GetString(buffer, 0, result.Count);
+                    Console.WriteLine($"Received: {message}");
+                    var response = System.Text.Encoding.UTF8.GetBytes("Pong Response");
+                    await webSocket.SendAsync(new ArraySegment<byte>(response), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
+                }
+            }
+        }
+    }
+}

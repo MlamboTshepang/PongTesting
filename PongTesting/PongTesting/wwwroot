@@ -1,0 +1,3 @@
+The wwwroot directory is intended to contain static files such as CSS, JavaScript, and images that are served directly to the client. Since you haven't specified any static files to include, this file will be intentionally left blank.
+
+<!-- This file is intentionally left blank. -->
